@@ -60,7 +60,7 @@ Apri la GUI e usa i pulsanti:
 - `Review all`: crea un backup e ritraduce tutte le voci dalla sorgente inglese corrente; serve per correggere traduzioni vecchie, letterali o non più coerenti con il gioco.
 - `Install`: copia la mod nel gioco.
 - `Uninstall`: ripristina i file originali usando i backup.
-- `Validate`: controlla chiavi e token protetti.
+- `Validate`: controlla chiavi e token, poi confronta DLL e JSON realmente installati con la release e mostra percorso, hash e numero di testi.
 - `Cancel`: interrompe in modo pulito l'operazione in corso.
 
 ## Nota

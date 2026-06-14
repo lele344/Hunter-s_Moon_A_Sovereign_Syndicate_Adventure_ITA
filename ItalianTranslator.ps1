@@ -1550,6 +1550,13 @@ function Invoke-InstallMod {
 
     Ensure-PackageFolders $Paths
     Assert-GameInstallation $Paths.GameRoot
+    $runningGame = @(Get-Process -ErrorAction SilentlyContinue | Where-Object {
+        $_.ProcessName -eq 'Hunters Moon' -or
+        ($_.Path -and [IO.Path]::GetFullPath($_.Path) -eq [IO.Path]::GetFullPath((Join-Path $Paths.GameRoot 'Hunters Moon.exe')))
+    })
+    if ($runningGame.Count -gt 0) {
+        throw "Il gioco è ancora aperto. Chiudilo completamente prima di installare la mod."
+    }
     Build-ReleasePackage $Paths
 
     New-Item -ItemType Directory -Force -Path $Paths.GameManaged, $Paths.GameLocales, $Paths.InstallBackupRoot | Out-Null
@@ -1583,10 +1590,33 @@ function Invoke-InstallMod {
         throw 'Verifica installazione fallita: i file copiati non coincidono con la release.'
     }
 
+    $installedEntries = Read-LocaleEntries $Paths.GameLocaleJson
+    $mainCount = @($installedEntries.Keys | Where-Object { [string]$_ -like 'main::*' }).Count
+    $customCount = @($installedEntries.Keys | Where-Object { [string]$_ -like 'custom::*' }).Count
+    $receipt = [ordered]@{
+        InstalledAt = (Get-Date).ToString('o')
+        GameRoot = [IO.Path]::GetFullPath($Paths.GameRoot)
+        LocaleDllSha256 = $dllInstalled
+        LocaleJsonSha256 = $jsonInstalled
+        TranslationKeys = $installedEntries.Count
+        MainKeys = $mainCount
+        CustomKeys = $customCount
+    }
+    [IO.File]::WriteAllText(
+        (Join-Path $Paths.InstallBackupRoot 'installation-report.json'),
+        ($receipt | ConvertTo-Json),
+        [Text.UTF8Encoding]::new($false)
+    )
+
     if (Test-Path -LiteralPath $Paths.GameLegacyPatchDll) {
         Remove-Item -LiteralPath $Paths.GameLegacyPatchDll -Force
     }
 
+    Write-Log "DLL installata: $($Paths.GameLocaleDll)"
+    Write-Log "DLL SHA256: $dllInstalled"
+    Write-Log "JSON installato: $($Paths.GameLocaleJson)"
+    Write-Log "JSON SHA256: $jsonInstalled"
+    Write-Log "Testi installati: $($installedEntries.Count) ($mainCount main, $customCount custom)"
     Write-Log "Mod italiana installata e verificata in: $($Paths.GameRoot)"
 }
 
@@ -1679,6 +1709,47 @@ function Invoke-ValidateTranslation {
     Write-Log $message
 }
 
+function Invoke-ValidateInstallation {
+    param($Paths)
+
+    Assert-GameInstallation $Paths.GameRoot
+    if (-not (Test-Path -LiteralPath $Paths.ReleaseDll) -or -not (Test-Path -LiteralPath $Paths.ReleaseJson)) {
+        throw 'Release della mod incompleta: DLL o JSON mancante.'
+    }
+    if (-not (Test-Path -LiteralPath $Paths.GameLocaleDll) -or -not (Test-Path -LiteralPath $Paths.GameLocaleJson)) {
+        throw 'Mod non installata: DLL o JSON italiano assente nel gioco.'
+    }
+
+    $releaseDllHash = (Get-FileHash -LiteralPath $Paths.ReleaseDll -Algorithm SHA256).Hash
+    $installedDllHash = (Get-FileHash -LiteralPath $Paths.GameLocaleDll -Algorithm SHA256).Hash
+    $releaseJsonHash = (Get-FileHash -LiteralPath $Paths.ReleaseJson -Algorithm SHA256).Hash
+    $installedJsonHash = (Get-FileHash -LiteralPath $Paths.GameLocaleJson -Algorithm SHA256).Hash
+    $releaseEntries = Read-LocaleEntries $Paths.ReleaseJson
+    $installedEntries = Read-LocaleEntries $Paths.GameLocaleJson
+    $mainCount = @($installedEntries.Keys | Where-Object { [string]$_ -like 'main::*' }).Count
+    $customCount = @($installedEntries.Keys | Where-Object { [string]$_ -like 'custom::*' }).Count
+
+    Write-Log "Installazione controllata: $($Paths.GameRoot)"
+    Write-Log "DLL gioco: $($Paths.GameLocaleDll)"
+    Write-Log "DLL installata: $installedDllHash"
+    Write-Log "DLL release:    $releaseDllHash"
+    Write-Log "JSON installato: $installedJsonHash"
+    Write-Log "JSON release:    $releaseJsonHash"
+    Write-Log "Testi nel JSON installato: $($installedEntries.Count) ($mainCount main, $customCount custom)"
+
+    if ($installedDllHash -cne $releaseDllHash) {
+        throw 'Locale.dll installato non coincide con quello della mod.'
+    }
+    if ($installedJsonHash -cne $releaseJsonHash) {
+        throw 'Italian_translated.json installato non coincide con quello della mod.'
+    }
+    if ($installedEntries.Count -ne $releaseEntries.Count -or $mainCount -eq 0 -or $customCount -eq 0) {
+        throw 'JSON installato incompleto: usa nuovamente Install con il pacchetto aggiornato.'
+    }
+
+    Write-Log 'Installazione verificata: DLL e JSON completi e identici alla release.'
+}
+
 function Invoke-Action {
     param(
         [ValidateSet('Analyze', 'Sync', 'Review', 'Install', 'Uninstall', 'Validate')]
@@ -1734,7 +1805,10 @@ function Invoke-Action {
         }
         'Install' { Invoke-InstallMod $paths }
         'Uninstall' { Invoke-UninstallMod $paths }
-        'Validate' { Invoke-ValidateTranslation $paths }
+        'Validate' {
+            Invoke-ValidateTranslation $paths
+            Invoke-ValidateInstallation $paths
+        }
     }
 }
 

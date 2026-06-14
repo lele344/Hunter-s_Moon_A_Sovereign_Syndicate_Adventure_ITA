@@ -1,16 +1,3 @@
-# Traduzione Italiana – Hunter's Moon A Sovereign Syndicate Adventure
-
----
-
-## ☕ Supporta il progetto
-
-Questa è la traduzione **non ufficiale in italiano** di *Hunter's Moon A Sovereign Syndicate Adventure*.  
-Se ti piace questo progetto, puoi offrirmi un caffè:
-
-[![Buy Me a Coffee](https://img.shields.io/badge/Buy%20Me%20a%20Coffee-%E2%98%95-yellow?style=for-the-badge)](https://www.buymeacoffee.com/lele344)
-
----
-
 # Traduzione italiana di Hunter's Moon
 
 Questa cartella contiene sia il lavoro di traduzione sia il pacchetto pronto da reinstallare.
@@ -23,7 +10,7 @@ Questa cartella contiene sia il lavoro di traduzione sia il pacchetto pronto da 
 - `release/`: file da copiare nel gioco.
 - `ItalianTranslator.ps1`: interfaccia unica con analisi, sincronizzazione, generazione, installazione, disinstallazione e validazione.
 - `ItalianTranslator.cmd`: avvio rapido della GUI senza dover scrivere il comando PowerShell.
-- `backup/`: backup automatici creati dall'installer.
+- `backup/history/`: cronologia delle traduzioni, portabile insieme al tool.
 
 Il tool non richiede Python: l'estrazione da `resources.assets` usa componenti inclusi in PowerShell/.NET.
 
@@ -37,7 +24,7 @@ In pratica:
 
 - nel menu vedrai `Italiano` al posto di `English`;
 - se selezioni quella voce, il gioco userà i testi italiani;
-- le cutscene, i tooltip e gli altri testi che il gioco carica dalle tabelle `Translations - All` e `Custom Translations - All` vengono inclusi nel file italiano;
+- le cutscene, i tooltip e gli altri testi caricati da `English`, `Translations - All` e `Custom Translations - All` vengono inclusi nel file italiano;
 - i riferimenti delle carte come `<keyword_block>` vengono risolti dalla DLL prima della visualizzazione, evitando che i tag interni compaiano nel gioco;
 - il pacchetto resta riutilizzabile anche dopo una reinstallazione del gioco.
 
@@ -50,6 +37,10 @@ Se il gioco viene aggiornato, apri `ItalianTranslator.ps1` e usa il pulsante `Ge
 ```
 
 La GUI confronta `Hunters Moon_Data\resources.assets` con la base in `source\English.json`, recupera anche i campi multilinea, aggiorna i file in `work\` e riscrive la traduzione pronta da installare. Le vecchie traduzioni restano salvate e vengono tradotti solo i testi nuovi, modificati, ancora in inglese oppure diventati incompatibili con i token del gioco.
+
+Il tool può essere spostato ovunque. Cerca automaticamente l'installazione reale del gioco tramite il percorso salvato e il registro di Windows; il percorso scelto viene memorizzato in `work\settings.json`. Prima di installare richiede la cartella che contiene `Hunters Moon.exe` e verifica che DLL e JSON copiati coincidano con la release.
+
+I file originali necessari alla disinstallazione vengono salvati in `.italian-translation-backup` dentro la specifica installazione del gioco. Non vengono distribuiti con il tool e non possono quindi essere confusi con i file originali di un altro PC.
 
 La traduzione avviene in batch dinamici. Il tool:
 
@@ -75,11 +66,3 @@ Apri la GUI e usa i pulsanti:
 ## Nota
 
 I nomi propri, i termini di gioco già consolidati e i token tra parentesi quadre o tag HTML devono restare invariati.
-
-
----
-
-
-## 📜 Note
-Questa traduzione è **fan-made**, non ufficiale e non affiliata agli sviluppatori.  
-Usare a proprio rischio.
